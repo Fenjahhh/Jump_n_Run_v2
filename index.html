@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Jump'n'Run Pixelgirl SW</title>
+  <style>
+    body { background: #fff; margin: 0; }
+    #game {
+      width: 600px;
+      height: 300px;
+      position: relative;
+      margin: 40px auto 10px auto;
+      background: #fff;
+      overflow: hidden;
+      box-sizing: border-box;
+      outline: none;
+    }
+    #score {
+      color: #111;
+      font-family: monospace, Arial, sans-serif;
+      font-size: 18px;
+      position: absolute;
+      top: 6px;
+      left: 12px;
+      background: #fff;
+      padding: 2px 12px 2px 2px;
+      border-radius: 7px;
+      user-select: none;
+      z-index: 10;
+    }
+    #cv-btn {
+      display: block;
+      margin: 0 auto 40px auto;
+      padding: 10px 30px;
+      font-size: 1.1em;
+      background: #111;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      opacity: 0.8;
+    }
+    #cv-btn:disabled {
+      background: #ccc;
+      color: #888;
+      cursor: default;
+      opacity: 0.5;
+    }
+    #message {
+      text-align: center;
+      color: #111;
+      font-family: Arial, sans-serif;
+      font-size: 1.2em;
+      margin: 12px 0 18px 0;
+      font-weight: bold;
+      letter-spacing: 1px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="game" tabindex="0" style="position:relative;">
+    <canvas id="game-canvas" width="600" height="300" style="display:block"></canvas>
+    <div id="score">Score: 0</div>
+  </div>
+  <div id="message">Glückwunsch! Du hast gewonnen 🎉 <br> Jetzt kannst du meinen Lebenslauf downloaden.</div>
+  <button id="cv-btn" disabled>Lebenslauf Downloaden</button>
+  <script>
+    // Game-Logik
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
+    const scoreElem = document.getElementById('score');
+    const cvBtn = document.getElementById('cv-btn');
+    const msg = document.getElementById('message');
+    let gameActive = true;
+
+    // Spielfeld-Parameter
+    const groundY = 200;
+    let cactusSpeed = 5;
+    let cactusList = [];
+    let cactusCooldown = 0;
+
+    // Figur-Status
+    let girl = {
+      x: 60,
+      y: groundY,
+      w: 48,
+      h: 60,
+      vy: 0,
+      jumping: false,
+      animTimer: 0,
+      animFrame: 0, // 0 oder 1 für gehen, 2 für springen
+      state: "walk" // "walk" oder "jump"
+    };
+
+    let score = 0;
+
+    cvBtn.addEventListener('click', () => {
+      window.open('z_CV_Fenja_Thomas.pdf', '_blank');
+    });
+
+    function resetGame() {
+      cactusList = [];
+      cactusCooldown = 0;
+      cactusSpeed = 5;
+      girl.y = groundY;
+      girl.vy = 0;
+      girl.jumping = false;
+      girl.animFrame = 0;
+      girl.state = "walk";
+      girl.animTimer = 0;
+      score = 0;
+      scoreElem.textContent = "Score: 0";
+      gameActive = true;
+      cvBtn.disabled = true;
+      cvBtn.textContent = "Lebenslauf Downloaden";
+      msg.style.display = "none";
+      loop();
+    }
+
+    function jump() {
+      if (!gameActive || girl.jumping) return;
+      girl.vy = -16;
+      girl.jumping = true;
+      girl.state = "jump";
+      girl.animFrame = 2; // Sprungframe
+      girl.animTimer = 0;
+    }
+
+    function drawGround() {
+      ctx.fillStyle = "#111";
+      ctx.fillRect(0, groundY + girl.h - 5, canvas.width, 5);
+    }
+
+    function drawCactus(x, height, width) {
+      ctx.fillStyle = "#111";
+      ctx.fillRect(x, groundY + girl.h - height, width, height);
+    }
+
+    // --- PIXELGIRL SPRITE: 2 Geh-Frames, 1 Sprung-Frame (SW, größer)
+    function drawPixelGirl(x, y, frame = 0) {
+      ctx.save();
+      ctx.translate(x, y);
+
+      // Kopf (weiß)
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(16, 4, 16, 16);
+
+      // Haare hinten (dunkelgrau, langer Zopf)
+      ctx.fillStyle = "#222";
+      ctx.fillRect(28, 12, 7, 24);
+
+      // Körper (schwarz)
+      ctx.fillStyle = "#111";
+      ctx.fillRect(18, 20, 12, 21);
+
+      // Arm (hellgrau)
+      ctx.fillStyle = "#aaa";
+      if (frame === 1) ctx.fillRect(33, 22, 5, 14);
+      else ctx.fillRect(10, 22, 5, 14);
+
+      // Beine animiert (schwarz)
+      ctx.fillStyle = "#111";
+      if (frame === 0) { // linker Schritt
+        ctx.fillRect(18, 41, 5, 16); // links
+        ctx.fillRect(25, 41, 5, 11);  // rechts
+      } else if (frame === 1) { // rechter Schritt
+        ctx.fillRect(18, 41, 5, 11);  // links
+        ctx.fillRect(25, 41, 5, 16); // rechts
+      } else { // springen, Beine zusammen
+        ctx.fillRect(20, 41, 8, 16);
+      }
+
+      // Auge (schwarz)
+      ctx.fillStyle = "#000";
+      ctx.fillRect(28, 10, 2, 2);
+
+      ctx.restore();
+    }
+
+    // --- SPIELLOOP ---
+    function loop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawGround();
+
+      // --- Hindernisse
+      for (let i = 0; i < cactusList.length; i++) {
+        cactusList[i].x -= cactusSpeed + Math.floor(score / 4);
+        drawCactus(cactusList[i].x, cactusList[i].height, cactusList[i].width);
+
+        // Collision
+        if (
+          girl.x + girl.w > cactusList[i].x &&
+          girl.x < cactusList[i].x + cactusList[i].width &&
+          girl.y + girl.h > groundY + girl.h - cactusList[i].height &&
+          girl.y < groundY + girl.h
+        ) {
+          gameOver();
+          return;
+        }
+      }
+      // Remove off-screen cacti
+      cactusList = cactusList.filter(cac => cac.x + cac.width > 0);
+
+      // --- Hindernis-Spawn
+      if (gameActive && --cactusCooldown < 0) {
+        let h = [38, 48, 58][Math.floor(Math.random() * 3)];
+        let w = [28, 22, 34][Math.floor(Math.random() * 3)];
+        cactusList.push({
+          x: canvas.width,
+          height: h,
+          width: w
+        });
+        cactusCooldown = 80 + Math.floor(Math.random() * 40);
+      }
+
+      // --- Figur-Physik & Animation
+      if (girl.jumping) {
+        girl.vy += 1.0;
+        girl.y += girl.vy;
+        if (girl.y >= groundY) {
+          girl.y = groundY;
+          girl.vy = 0;
+          girl.jumping = false;
+          girl.state = "walk";
+          girl.animFrame = 0; // Setze auf Gehanimation
+          girl.animTimer = 0;
+        }
+      } else {
+        // Animation: Wechsle Geh-Frame alle 6 Loops
+        girl.animTimer++;
+        if (girl.animTimer > 6) {
+          girl.animFrame = 1 - girl.animFrame;
+          girl.animTimer = 0;
+        }
+      }
+
+      // Zeichne die Figur (Walk: 0/1, Jump: 2)
+      let drawFrame = (girl.jumping || girl.state === "jump") ? 2 : girl.animFrame;
+      drawPixelGirl(girl.x, girl.y, drawFrame);
+
+      // --- Punkte & Spiel-Ende
+      if (gameActive && cactusList.length && cactusList[0].x + cactusList[0].width < girl.x && !cactusList[0].scored) {
+        score++;
+        scoreElem.textContent = "Score: " + score;
+        cactusList[0].scored = true;
+
+        if (score >= 10) {
+          winGame();
+          return;
+        }
+      }
+
+      if (gameActive) requestAnimationFrame(loop);
+    }
+
+    function winGame() {
+      gameActive = false;
+      scoreElem.textContent = "🎉 Score: " + score + " – Du hast gewonnen!";
+      msg.style.display = "block";
+      cvBtn.disabled = false;
+      cvBtn.textContent = "Jetzt Lebenslauf downloaden!";
+    }
+
+    function gameOver() {
+      gameActive = false;
+      scoreElem.textContent = "GAME OVER! Score: " + score + " – [R] Neustart";
+      msg.style.display = "none";
+      cvBtn.disabled = true;
+      cvBtn.textContent = "Lebenslauf Downloaden";
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if ((e.code === 'Space' || e.key === ' ') && gameActive) jump();
+      if (!gameActive && (e.key === 'r' || e.key === 'R')) resetGame();
+    });
+
+    canvas.addEventListener('touchstart', function(e) {
+      if (gameActive) jump();
+      e.preventDefault();
+    }, { passive: false });
+    canvas.addEventListener('touchend', function(e) {
+      if (!gameActive) resetGame();
+    });
+
+
+    // Start!
+    resetGame();
+  </script>
+</body>
+</html>
