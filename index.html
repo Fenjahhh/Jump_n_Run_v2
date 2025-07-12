@@ -65,6 +65,17 @@
   </div>
   <div id="message">Glückwunsch! Du hast gewonnen 🎉 <br> Jetzt kannst du meinen Lebenslauf downloaden.</div>
   <button id="cv-btn" disabled>Lebenslauf Downloaden</button>
+  <!-- VOR dem <script> -->
+  <div id="fenja-chat" style="display: none; max-width: 600px; margin: 30px auto; text-align: left; font-family: monospace;">
+    <img src="fenja_avatar.png" alt="Fenja-Avatar" style="height: 80px; float: left; margin-right: 12px;">
+    <div id="chat-window" style="border: 1px solid #aaa; padding: 10px; height: 180px; overflow-y: auto; background: #f9f9f9; border-radius: 6px;"></div>
+    <div style="clear: both; margin-top: 8px;">
+      <input type="text" id="chat-input" placeholder="Frag Fenja etwas..." style="width: 75%; padding: 6px; font-size: 1em;">
+      <button onclick="sendMessage()" style="padding: 6px 12px;">Senden</button>
+    </div>
+  </div>
+
+ 
   <script>
     // Game-Logik
     const canvas = document.getElementById('game-canvas');
@@ -286,6 +297,53 @@
 
     // Start!
     resetGame();
+   
+
+    cvBtn.addEventListener('click', () => {
+      window.open('z_CV_Fenja_Thomas.pdf', '_blank');
+      document.getElementById('fenja-chat').style.display = 'block'; // Avatar-Chat einblenden
+    });
+    
+    // Chat mit GPT-4 (Fenja-Rolle)
+    async function sendMessage() {
+      const inputField = document.getElementById("chat-input");
+      const chatWindow = document.getElementById("chat-window");
+      const userMsg = inputField.value;
+      if (!userMsg.trim()) return;
+    
+      // Nutzerfrage anzeigen
+      chatWindow.innerHTML += `<div><b>Du:</b> ${userMsg}</div>`;
+    
+      // GPT-Antwort holen
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer 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" // 👈 hier eintragen
+        },
+        body: JSON.stringify({
+          model: "gpt-4",
+          messages: [
+            {
+              role: "system",
+              content: `Du bist Fenja, eine junge kreative ITlerin mit Interesse an AI, Automatisierung, Python und Design. Du beantwortest Fragen freundlich und direkt.`
+            },
+            {
+              role: "user",
+              content: userMsg
+            }
+          ],
+          temperature: 0.7
+        })
+      });
+    
+      const data = await response.json();
+      const answer = data.choices?.[0]?.message?.content || "(keine Antwort)";
+      chatWindow.innerHTML += `<div><b>Fenja:</b> ${answer}</div>`;
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+      inputField.value = "";
+    }
+
   </script>
 </body>
 </html>
