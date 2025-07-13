@@ -31,6 +31,46 @@
 
     </div>
 
-    <script src="chatbot.js"></script>
+    <script 
+        
+          async function sendMessage() {
+            const inputField = document.getElementById("input-field");
+            const conversation = document.getElementById("conversation");
+            const userText = inputField.value.trim();
+            if (!userText) return;
+        
+            // Zeige Nutzer-Nachricht
+            const userMsg = document.createElement("div");
+            userMsg.className = "chatbot-message user-message";
+            userMsg.textContent = userText;
+            conversation.appendChild(userMsg);
+            inputField.value = "";
+        
+            // Flowise-API-Aufruf
+            const flowId = "DEIN-FLOW-ID"; // <-- hier einsetzen
+            try {
+              const res = await fetch(`https://cloud.flowiseai.com/api/v1/prediction/${61965f95-18d2-46b9-a0d2-363864516a49}`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json"
+                  // "Authorization": "Bearer <dein_api_key>" // falls du API-Key brauchst
+                },
+                body: JSON.stringify({ question: userText })
+              });
+        
+              const data = await res.json();
+              const botMsg = document.createElement("div");
+              botMsg.className = "chatbot-message";
+              botMsg.textContent = data.text || "(Keine Antwort erhalten)";
+              conversation.appendChild(botMsg);
+              conversation.scrollTop = conversation.scrollHeight;
+            } catch (err) {
+              const errMsg = document.createElement("div");
+              errMsg.className = "chatbot-message";
+              errMsg.textContent = "Fehler beim Abrufen der Antwort.";
+              conversation.appendChild(errMsg);
+            }
+          }
+    </script>
 </body>
 </html>
