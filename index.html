@@ -32,48 +32,49 @@
     </div>
 
     <script>
-              const form = document.getElementById("input-form");
-              const inputField = document.getElementById("input-field");
-              const conversation = document.getElementById("conversation");
-            
-              form.addEventListener("submit", function (e) {
-                e.preventDefault(); // verhindert Reload
-                sendMessage();
-              });
-            
-              async function sendMessage() {
-                const userText = inputField.value.trim();
-                if (!userText) return;
-            
-                const userMsg = document.createElement("div");
-                userMsg.className = "chatbot-message user-message";
-                userMsg.textContent = userText;
-                conversation.appendChild(userMsg);
-                inputField.value = "";
-            
-                const flowId = "61965f95-18d2-46b9-a0d2-363864516a49";
-                try {
-                  const res = await fetch(`https://cloud.flowiseai.com/api/v1/prediction/${flowId}`, {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ question: userText }) // ❗ hier ggf. "input": userText → je nach Prompt!
-                  });
-            
-                  const data = await res.json();
-                  const botMsg = document.createElement("div");
-                  botMsg.className = "chatbot-message";
-                  botMsg.textContent = data.text || "(Keine Antwort erhalten)";
-                  conversation.appendChild(botMsg);
-                  conversation.scrollTop = conversation.scrollHeight;
-                } catch (err) {
-                  const errMsg = document.createElement("div");
-                  errMsg.className = "chatbot-message";
-                  errMsg.textContent = "Fehler beim Abrufen der Antwort.";
-                  conversation.appendChild(errMsg);
-                }
-              }
+      const form = document.getElementById("input-form");
+      const inputField = document.getElementById("input-field");
+      const conversation = document.getElementById("conversation");
+    
+      form.addEventListener("submit", function (e) {
+        e.preventDefault(); // verhindert Reload
+        sendMessage();
+      });
+    
+      async function sendMessage() {
+        const userText = inputField.value.trim();
+        if (!userText) return;
+    
+        const userMsg = document.createElement("div");
+        userMsg.className = "chatbot-message user-message";
+        userMsg.textContent = userText;
+        conversation.appendChild(userMsg);
+        inputField.value = "";
+    
+        const flowId = "61965f95-18d2-46b9-a0d2-363864516a49";
+        try {
+          const res = await fetch(`https://cloud.flowiseai.com/api/v1/prediction/${flowId}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ question: userText }) // ❗ hier ggf. "input": userText → je nach Prompt!
+          });
+    
+          const data = await res.json();
+          const botMsg = document.createElement("div");
+          botMsg.className = "chatbot-message";
+          botMsg.textContent = data.text || "(Keine Antwort erhalten)";
+          conversation.appendChild(botMsg);
+          conversation.scrollTop = conversation.scrollHeight;
+        } catch (err) {
+          const errMsg = document.createElement("div");
+          errMsg.className = "chatbot-message";
+          errMsg.textContent = "Fehler beim Abrufen der Antwort.";
+          conversation.appendChild(errMsg);
+        }
+      }
+    
 
     </script>
 </body>
