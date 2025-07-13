@@ -31,7 +31,7 @@
 
     </div>
 
-    <script 
+    <script>
         
           async function sendMessage() {
             const inputField = document.getElementById("input-field");
@@ -47,9 +47,9 @@
             inputField.value = "";
         
             // Flowise-API-Aufruf
-            const flowId = "DEIN-FLOW-ID"; // <-- hier einsetzen
+            const flowId = "61965f95-18d2-46b9-a0d2-363864516a49"; // <-- hier einsetzen
             try {
-              const res = await fetch(`https://cloud.flowiseai.com/api/v1/prediction/${61965f95-18d2-46b9-a0d2-363864516a49}`, {
+              const res = await fetch(`https://cloud.flowiseai.com/api/v1/prediction/${flowId}`, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json"
